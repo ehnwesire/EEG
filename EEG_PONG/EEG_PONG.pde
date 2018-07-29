@@ -10,29 +10,31 @@
  * this one is not object oriented. The two player version is.
  */
  
- //grab the libraries we need
+// commented by eric li the all-time cheater 
+ 
+// importing the minim library 
  import ddf.minim.*;
  import ddf.minim.signals.*;
  import ddf.minim.analysis.*;
  import ddf.minim.effects.*;
  
- int windowLength = 500;
+ int windowLength = 500; // length and height of the window 
  int windowHeight = 400;
- int paddleWidth;
+ int paddleWidth; // width and length of the paddle 
  int paddleLength;
- float[] alphaAverages;
- int averageLength = 50; //averages about the last 5 seconds worth of data
- int counter = 0;
+ float[] alphaAverages; // an array of the averaged alpha waves? 
+ int averageLength = 50; // not sure yet //averages about the last 5 seconds worth of data
+ int counter = 0; // counting how many times the ball collides with the paddle 
  
- static int alphaCenter = 9;
- static int alphaBandwidth = 2; //really bandwidth divided by 2
+ static int alphaCenter = 9; // center of the alpha waves? 
+ static int alphaBandwidth = 2; //probably diving the alphawaves by 2? //really bandwidth divided by 2
  
  //mostly audio functions to grab/process the data
- Minim minim;
- AudioInput in;
- FFT fft;
- BandPass alphaFilter;
- float scaleFreq = 1.33f;
+ Minim minim; // creating a minim object 
+ AudioInput in; // setting the audio input object in 
+ FFT fft; // perform a Fourier Transform on audio data to generate a frequency spectrum // in other words transforming the audio input as some sort of spectrum?
+ BandPass alphaFilter; //Bandpass allows waves between two frequencies to pass
+ float scaleFreq = 1.33f; // f is probably 440Hz
  
  boolean absoluteBadDataFlag;
  boolean averageBadDataFlag;
@@ -44,41 +46,52 @@
  float ballrad = 10;      //radius
  
 void setup(){
-  alphaAverages = new float[averageLength];
-  for (int i = 0; i < averageLength; i++){
+  alphaAverages = new float[averageLength]; // creating an array of 50 floats
+  for (int i = 0; i < averageLength; i++){ // setting the floats value to 0
     alphaAverages[i] = 0;
   }
   
-  size(windowLength,windowHeight,P2D);
+  size(500,400,P2D); // setting up the programs window with length 500 height 400 and p2d renderer
   background(0); //make background black
-  stroke(255);   //and everything we draw white
+  stroke(0, 123, 0);   //and everything we draw white
   
-  paddleWidth = 5;
-  paddleLength = (height-100) / 5;
+  paddleWidth = 5; // the paddles width 
+  paddleLength = (height-100) / 5; // the paddles length, i suppose its (400-100)/5 = 60?
   
   //initialize minim, as well as our alpha filter
   minim = new Minim(this);
   minim.debugOn();
-  alphaFilter = new BandPass(alphaCenter/scaleFreq,alphaBandwidth/scaleFreq,32768);
+  alphaFilter = new BandPass(alphaCenter/scaleFreq,alphaBandwidth/scaleFreq,32768); 
+  // initializing alphaFilter as a new BandPass object, parameters refer to: float freq, float bandWidth, float sampleRate)
+  // imo the alphaCenter might be the base frequency and Bandwith is the range? 
   
-  in = minim.getLineIn(Minim.MONO, 8192*4);
-  in.addEffect(alphaFilter);
-  fft = new FFT(in.bufferSize(), in.bufferSize());
-  fft.window(FFT.HAMMING);
+  
+  in = minim.getLineIn(Minim.MONO, 8192*4); 
+  // Audioinput object = minim.getLineIn(int type, int bufferSize) MONO refers to something, not sure
+  // bufferSize refers to how long we want the sound card to process audio input
+  in.addEffect(alphaFilter); // applying the bandpass filter to our audio input 
+  fft = new FFT(in.bufferSize(), in.bufferSize()); // parameters: (int timeSize, float sampleRate)
+  // we want to analyze the audio input for a long time and using the audio inputs buffer size as the sample rate
+  fft.window(FFT.HAMMING); // creating a Hamming window to use on the sample buffers (or how the program shows the wave?)
 }
 
 void draw(){
   background(0); //clear previous drawings
   
-  absoluteBadDataFlag = false;
-  averageBadDataFlag = false;
-  float timeDomainAverage = 0;
+  absoluteBadDataFlag = false; // not sure what this is 
+  averageBadDataFlag = false; // not sure what this is 
+  float timeDomainAverage = 0; // still not sure 
   
-  fft.forward(in.mix); //compute FFT
-  line(0,100,windowLength,100); //line separating time and frequency data
+  fft.forward(in.mix); //compute FFT 
+  // void forward(float[] buffer) forward transforms the buffer: i guess this makes the audio input into the sprctruM?
+  line(0,100,windowLength,100); //line separating time and frequency data // yeah, just the line sitting there
   
   //get a good amount of time data
+  // dont quite understand yet
   for(int i = 0; i < windowLength; i++){
+    // abs = absolute value; in.left = the single channel of audio; .get = getting the ith sample in buffer
+    // i = every pixel in the window length; round = rounding a float to int; in.bufferSize() = the inputs buffer size 
+    // dividing by windowLength to get the windows current spectrum? 
     if (abs(in.left.get(i*round(in.bufferSize()/windowLength)))*2 > .95){
       absoluteBadDataFlag = true;
     }
@@ -96,39 +109,47 @@ void draw(){
       averageBadDataFlag = true;
   }
   
-  text("absoluteBadDataFlag = " + absoluteBadDataFlag, windowLength - 170, 20);
-  text("averageBadDataFlag = " + averageBadDataFlag, windowLength - 170, 40);
+  // i dont quite understand this absoluteDataFlag thing :(
+  // my guess is if the frequency exceeds the windows spectrum part the data wont get counted
   
-  int lowBound = fft.freqToIndex(alphaCenter - alphaBandwidth);
+  text("game controller project under construction", windowLength - 350, 20);
+  text("mr trey eric li", windowLength - 170, 250);
+  
+  int lowBound = fft.freqToIndex(alphaCenter - alphaBandwidth); // AHA! it does indicate the high and low bound of the frequency
   int hiBound = fft.freqToIndex(alphaCenter + alphaBandwidth);
   
-  lowBound = round(lowBound/scaleFreq);
+  lowBound = round(lowBound/scaleFreq); // getting the frequency to a moderate level 
   hiBound = round(hiBound/scaleFreq);
   
   float avg = 0;
-  for (int j = lowBound; j <= hiBound; j++){
-    avg += fft.getBand(j);
+  for (int j = lowBound; j <= hiBound; j++){ // doing this for every freqeuncy in the band pass filter
+    avg += fft.getBand(j); //getting the amplitude of the frequency band and adding it to avg
   }
-  avg /= (hiBound - lowBound + 1);
+  avg /= (hiBound - lowBound + 1); // scaling, i guess?
   //scale averages a bit
   avg *= .3775;
   
+  // setting the alpha data to avg if the datas are not bad?
   if (absoluteBadDataFlag == false && averageBadDataFlag == false){
     alphaAverages[counter%averageLength] = avg;
   }
   
+  // adding all alphaAverages values to the final value 
   float finalAlphaAverage = 0;
   for (int k = 0; k < averageLength; k++){
     finalAlphaAverage += alphaAverages[k];
   }
+  // getting the final average by dividing the avg num by 50
   finalAlphaAverage = finalAlphaAverage / averageLength;
   finalAlphaAverage = finalAlphaAverage - 200; //base average is around 100, normalize it
                                                //and make the lower half negative
-  
+  //so i think what we just did was averaging and getting the usable, doable frequency datas to the array and determine how the padle moves 
   float paddleHeight = height-paddleLength;
   
+  // making the paddle move
   paddleHeight += finalAlphaAverage /5; //finalAlphaAverage ranges from about 0 to 200 now,
                                            //we want that to cover window of 0 to 300
+  // the actualy game part 
   //make sure the paddle doesn't go off-screen
   if (paddleHeight > height - paddleLength)
     paddleHeight = height - paddleLength;
@@ -169,17 +190,3 @@ void keyPressed(){
     ballvel[1] = 0;
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
